@@ -21,4 +21,14 @@ export class KVEngine{
   delete(key:string){
     return this.store.delete(key);
   }
+  recover(){
+    const logs=this.wal.read();
+    for(const log of logs){
+       if(log.operation === "put"){
+            this.store.set(log.key, log.value)
+        } else if(log.operation === "delete"){
+            this.store.delete(log.key)
+        }
+    }
+  }
 }
