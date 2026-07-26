@@ -1,4 +1,4 @@
-import fs from fs
+import fs from "fs";
 
 export class wal{
   private file="database.log"

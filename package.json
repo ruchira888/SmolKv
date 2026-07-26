@@ -19,8 +19,11 @@
   },
   "homepage": "https://github.com/ruchira888/SmolKv#readme",
   "dependencies": {
-    "@types/node": "^22.10.2",
+    "fs": "^0.0.1-security",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1"
   }
 }
