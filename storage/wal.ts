@@ -1,6 +1,6 @@
 import fs from "fs";
 
-export class wal{
+export class WAL{
   private file="database.log"
 
   append(

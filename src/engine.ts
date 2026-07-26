@@ -1,10 +1,18 @@
+
+import { WAL} from "../storage/wal.js";
 export class KVEngine{
-  private store:Map<string,string>//each kveng obj will have var and thatll store map
+  private store=new Map<string,string>()//each Kveng instance gets its own store property, initialize to empty Map
+  private wal:WAL;
+
 
   constructor(){
     this.store=new Map();
+    this.wal=new WAL;
   }
+
   put(key:string,value:string){
+
+    this.wal.append("put",key,value)
     this.store.set(key,value)
   }
   get(key:string){
