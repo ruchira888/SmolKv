@@ -1,0 +1,26 @@
+{
+  "name": "smolkv",
+  "version": "1.0.0",
+  "description": "SmolKv - a tiny key-value store written in TypeScript",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruchira888/SmolKv.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ruchira888/SmolKv/issues"
+  },
+  "homepage": "https://github.com/ruchira888/SmolKv#readme",
+  "dependencies": {
+    "@types/node": "^22.10.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}
