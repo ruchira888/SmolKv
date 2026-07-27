@@ -1,6 +1,6 @@
 import fs from "fs";
 
-export class manifest{
+export class Manifest{
 
   private path="./data/manifest.json";
 
