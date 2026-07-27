@@ -3,13 +3,15 @@ import { MemTable } from "../memtable/memtable.js";
 import { WAL} from "../storage/wal.js";
 import { Index } from "./index.js";
 import { SSTable } from "../storage/sstable.js";
+import { Manifest } from "../storage/manifest.js";
 export class KVEngine{
     private memtable: MemTable;//each Kveng instance gets its own store property, initialize to empty Map
   private wal:WAL;
    private index: Index;
    private sstable:SSTable;
-   private sstableCount=0;//cnt of how many files have been created
+
    private readonly MAX_MEMTABLE_SIZE=5;
+   private manifest: Manifest;
 
 
   constructor(){
@@ -17,11 +19,9 @@ export class KVEngine{
     this.wal=new WAL();
     this.index=new Index();
     this.sstable=new SSTable();
+    this.manifest=new Manifest();
   }
-  private nextSSTableName():string{
-    this.sstableCount++;//cnt++ for flush
-    return `${String(this.sstableCount).padStart(3, "0")}.sst`;
-  }
+  
 
   put(key:string,value:string){
 
@@ -34,9 +34,10 @@ export class KVEngine{
     }
   }
   flush(){
-  const filename = this.nextSSTableName();
+  const filename = this.manifest.nextFileName();
 
     this.sstable.write(filename, this.memtable.entries());
+    this.manifest.addFile(filename);
 
     for (const key of this.memtable.keys()) {
       this.index.set(key, filename);
