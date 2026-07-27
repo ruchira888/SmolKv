@@ -6,5 +6,5 @@ for (let i = 1; i <= 6; i++) {
     db.put(`key${i}`, `value${i}`);
 }
 
-console.log(db.get("key1")); // should still work, from SSTable now
-console.log(db.get("key6")); // should work, from MemTable (not flushed yet)
+console.log(db.get("key1")); 
+console.log(db.get("key6")); 

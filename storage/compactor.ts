@@ -1,7 +1,7 @@
 import fs from "fs"
 import { Manifest } from "./manifest.js";
 export class Compact{
- //single source of truth that updates it once da compaction is done, so restart doesn't load a file that no longer exists. 
+ 
   private manifest = new Manifest();
    compact(){
         const files = fs.readdirSync("./data")
