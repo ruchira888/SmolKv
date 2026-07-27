@@ -43,9 +43,23 @@ export class KVEngine{
   }
      this.memtable.clear();
     }
-  get(key:string){
-    return this.memtable.get(key);
-  }
+  get(key: string) {
+    // 1. Check MemTable first
+    const value = this.memtable.get(key);
+    if (value !== undefined) {
+        return value;
+    }
+
+    // 2. Check the Index
+    const location = this.index.get(key);
+
+    if (!location || location === "memtable") {
+        return undefined;
+    }
+
+    // 3. Read from the SSTable
+    return this.sstable.readKey(location, key);
+}
   delete(key:string){
     this.wal.append("delete", key, "");
     this.memtable.delete(key);
