@@ -21,4 +21,7 @@ get(key:string){
 return this.map.get(key);
 
 }
+delete(key:string){
+    this.map.delete(key);
+}
 }
