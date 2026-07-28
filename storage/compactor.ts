@@ -1,11 +1,13 @@
 import fs from "fs"
 import { Manifest } from "./manifest.js";
+import { TOMBSTONE } from "../src/constants.js";
 export class Compact{
  
   private manifest = new Manifest();
    compact(){
         const files = fs.readdirSync("./data")
-            .filter(file => file.endsWith(".sst"));
+            .filter(file => file.endsWith(".sst"))
+            .sort();
             //end up holdin da correct value 4 every key
             const merged=new Map<string,string>();
             for(const file of files){
@@ -40,13 +42,15 @@ value
             }
         
     }
+
+    const newFilename=this.manifest.nextFileName();
     fs.writeFileSync(
-"./data/merged.sst",
+"./data/"+newFilename,
 JSON.stringify(
 Array.from(merged.entries())
 )
 );
-this.manifest.save(['merged.sst']);
+this.manifest.save([newFilename]);
 
  // delete da old files now that they're safely merged
         for(const file of files){

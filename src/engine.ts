@@ -4,6 +4,7 @@ import { WAL} from "../storage/wal.js";
 import { Index } from "./index.js";
 import { SSTable } from "../storage/sstable.js";
 import { Manifest } from "../storage/manifest.js";
+import { TOMBSTONE } from "./constants.js";
 export class KVEngine{
     private memtable: MemTable;//each Kveng instance gets its own store property, initialize to empty Map
   private wal:WAL;
@@ -31,8 +32,13 @@ export class KVEngine{
        const filepath = `./data/${filename}`;
       const entries: [string, string][] = this.sstable.read(filepath);
 
-      for (const [key] of entries) {//destructurin n only using key whichll point to file so index key-->001.sst
+      for (const [key,value] of entries) {
+        if(value===TOMBSTONE){
+          this.index.delete(key);
+        }else{
+        //destructurin n only using key whichll point to file so index key-->001.sst
         this.index.set(key, filepath);
+        }
       }
     }
   }
@@ -61,24 +67,25 @@ export class KVEngine{
   get(key: string) {
     // 1. Check MemTable first
     const value = this.memtable.get(key);
-    if (value !== undefined) {
-        return value;
-    }
+    if(value==TOMBSTONE)return undefined;
+    if (value !== undefined) return value;
+  
 
     // 2. Check the Index
     const location = this.index.get(key);
 
-    if (!location || location === "memtable") {
-        return undefined;
+    if (location && location !== "memtable") {
+        const found = this.sstable.readKey(location, key);
+        if (found === TOMBSTONE) return undefined;  
+        if (found !== undefined) return found;
     }
-
-    // 3. Read from the SSTable
-    return this.sstable.readKey(location, key);
+  
+    return undefined;
 }
   delete(key:string){
-    this.wal.append("delete", key, "");
-    this.memtable.delete(key);
-    this.index.delete(key);
+    this.wal.append("delete", key,"");
+    this.memtable.put(key,TOMBSTONE);
+    this.index.set(key,"memtable");
 }
   recover(){
     const logs=this.wal.read();
