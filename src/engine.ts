@@ -55,20 +55,26 @@ export class KVEngine{
   }
   flush(){
   const filename = this.manifest.nextFileName();
+   const filepath = `./data/${filename}`;
 
-    this.sstable.write(filename, this.memtable.entries());
+
+    this.sstable.write(filepath, this.memtable.entries());
+
+  const currentWalLength = this.wal.read().length;
     this.manifest.addFile(filename);
+    this.manifest.saveWalOffset(currentWalLength);
 
     for (const key of this.memtable.keys()) {
-      this.index.set(key, filename);
+      this.index.set(key, filepath);
   }
      this.memtable.clear();
     }
   get(key: string) {
     // 1. Check MemTable first
     const value = this.memtable.get(key);
-    if(value==TOMBSTONE)return undefined;
+    if(value===TOMBSTONE)return undefined;
     if (value !== undefined) return value;
+    
   
 
     // 2. Check the Index
@@ -88,14 +94,19 @@ export class KVEngine{
     this.index.set(key,"memtable");
 }
   recover(){
+    const manifestData = this.manifest.load();
+    const walOffset = manifestData.walOffset || 0;
+
     const logs=this.wal.read();
-    for(const log of logs){
+     const newLogs = logs.slice(walOffset);
+
+    for(const log of newLogs){
        if(log.operation === "put"){
             this.memtable.put(log.key, log.value);
             this.index.set(log.key, "memtable");
         } else if(log.operation === "delete"){
-            this.memtable.delete(log.key);
-            this.index.delete(log.key);
+            this.memtable.put(log.key,TOMBSTONE);
+            this.index.set(log.key,"memtable");
         }
     }
   }

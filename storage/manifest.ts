@@ -4,9 +4,9 @@ export class Manifest {
 
     private path = "./data/manifest.json";
 
-    save(files: string[]) {//Save the list of SSTable filenames into manifest.json
+    save(files: string[], walOffset: number = 0) {
         const data = {
-            files
+            files, walOffset
         };
 
         fs.writeFileSync(
@@ -15,11 +15,10 @@ export class Manifest {
         );
     }
 
-    load() {//Read manifest.json n return the filenmes
-        // On startup manifest.json doesn't exist yet
+    load() {
         if (!fs.existsSync(this.path)) {
             return {
-                files: []
+                files: [], walOffset: 0
             };
         }
 
@@ -27,14 +26,16 @@ export class Manifest {
             this.path,
             "utf-8"
         );
+        const parsed = JSON.parse(data);
 
-        return JSON.parse(data);
+        return {
+            files: parsed.files || [],
+            walOffset: parsed.walOffset || 0
+        };
     }
 
-  
-    nextFileName(): string {//return nex filename
+    nextFileName(): string {
         const manifest = this.load();
-
         const files = manifest.files;
 
         if (files.length === 0) {
@@ -42,18 +43,19 @@ export class Manifest {
         }
 
         const lastFile = files[files.length - 1];
-
         const number = parseInt(lastFile.replace(".sst", ""));
 
         return `${String(number + 1).padStart(3, "0")}.sst`;
     }
 
-    
-    addFile(filename: string) {//add new filenme to manifest.json
+    addFile(filename: string) {
         const manifest = this.load();
-
         manifest.files.push(filename);
+        this.save(manifest.files, manifest.walOffset);
+    }
 
-        this.save(manifest.files);
+    saveWalOffset(offset: number) {
+        const manifest = this.load();
+        this.save(manifest.files, offset);
     }
 }
