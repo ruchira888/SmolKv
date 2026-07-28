@@ -20,8 +20,22 @@ export class KVEngine{
     this.index=new Index();
     this.sstable=new SSTable();
     this.manifest=new Manifest();
+
+    this.loadExistingSSTables();
   }
-  
+  //called right at end of constr so runs the moment new kveng() gets created
+  private loadExistingSSTables(){
+    const manifestData=this.manifest.load();
+
+    for(const filename of manifestData.files){
+       const filepath = `./data/${filename}`;
+      const entries: [string, string][] = this.sstable.read(filepath);
+
+      for (const [key] of entries) {//destructurin n only using key whichll point to file so index key-->001.sst
+        this.index.set(key, filepath);
+      }
+    }
+  }
 
   put(key:string,value:string){
 
