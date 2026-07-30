@@ -25,7 +25,7 @@ JSON.parse(content);
 for(const [key,value] of entries){
 
 //tombstone
-if(value==="__DELETE__"){
+if(value===TOMBSTONE){
 
 merged.delete(key);
 

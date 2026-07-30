@@ -5,6 +5,7 @@ import { Index } from "./index.js";
 import { SSTable } from "../storage/sstable.js";
 import { Manifest } from "../storage/manifest.js";
 import { TOMBSTONE } from "./constants.js";
+import { Compact } from "../storage/compactor.js";
 export class KVEngine{
     private memtable: MemTable;//each Kveng instance gets its own store property, initialize to empty Map
   private wal:WAL;
@@ -13,7 +14,7 @@ export class KVEngine{
 
    private readonly MAX_MEMTABLE_SIZE=5;
    private manifest: Manifest;
-
+  private compactor:Compact;
 
   constructor(){
     this.memtable=new MemTable();
@@ -21,6 +22,7 @@ export class KVEngine{
     this.index=new Index();
     this.sstable=new SSTable();
     this.manifest=new Manifest();
+    this.compactor=new Compact();
 
     this.loadExistingSSTables();
   }
@@ -69,6 +71,11 @@ export class KVEngine{
   }
      this.memtable.clear();
     }
+    compact() {
+    this.compactor.compact();
+    this.index = new Index();
+    this.loadExistingSSTables();
+}
   get(key: string) {
     // 1. Check MemTable first
     const value = this.memtable.get(key);
