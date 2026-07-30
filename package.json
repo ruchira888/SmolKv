@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-   "server": "node --loader ts-node/esm src/api/server.ts"
+   "server": "node --loader ts-node/esm src/api/server.ts",
+    "cli": "node --loader ts-node/esm src/cli/cli.ts"
     
   },
   "repository": {
