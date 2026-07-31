@@ -1,29 +1,34 @@
 import fs from "fs"
 
 export class SSTable{
-  write(filename:string,data:Map<string,string>){
+   constructor() {
+    if (!fs.existsSync("./data")) {
+      fs.mkdirSync("./data");
+    }
+  }
+  write(filepath:string,data:Map<string,string>){
     const sorted=Array.from(data.entries())
 .sort()
 
 
 fs.writeFileSync(
-filename,
+filepath,
 JSON.stringify(sorted)
 );
   }
-  read(filename:string){
+  read(filepath:string){
 
 const file =
 fs.readFileSync(
-filename,
+filepath,
 "utf-8"
 )
 
 
 return JSON.parse(file)
 
-}readKey(filename: string, key: string): string | undefined {
-    const entries: [string, string][] = this.read(filename);
+}readKey(filepath: string, key: string): string | undefined {
+    const entries: [string, string][] = this.read(filepath);
     const found = entries.find(([k]) => k === key);
     return found ? found[1] : undefined;
 }
