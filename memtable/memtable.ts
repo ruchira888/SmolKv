@@ -16,8 +16,8 @@ export class MemTable{
     return Array.from(this.data.keys());
   }
  // Return the entire Map so SSTable.write() can write everything to disk
-  entries(): Map<string, string> {
-    return this.data;
+  entries(): [string, string][] {
+    return Array.from(this.data.entries());
   }
 //size after how many should it be flushed
   size(): number {

@@ -24,4 +24,7 @@ return this.map.get(key);
 delete(key:string){
     this.map.delete(key);
 }
+entries(): [string, string][] {
+    return Array.from(this.map.entries());
+}
 }

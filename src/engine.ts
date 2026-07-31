@@ -101,9 +101,6 @@ export class KVEngine{
     this.memtable.put(key,TOMBSTONE);
     this.index.set(key,"memtable");
 }
- beginTransaction(): Transaction {
-    return new Transaction(this);
-}
   recover(){
     const manifestData = this.manifest.load();
     const walOffset = manifestData.walOffset || 0;
@@ -121,5 +118,14 @@ export class KVEngine{
         }
     }
   }
- 
+  beginTransaction(): Transaction {
+    return new Transaction(this);
+}
+inspect() {
+    return {
+        memtable: this.memtable.entries(),
+        index: this.index.entries(),
+        sstables: this.manifest.load().files
+    };
+}
 }

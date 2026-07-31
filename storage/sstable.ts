@@ -6,9 +6,8 @@ export class SSTable{
       fs.mkdirSync("./data");
     }
   }
-  write(filepath:string,data:Map<string,string>){
-    const sorted=Array.from(data.entries())
-.sort()
+  write(filepath:string,data:[string,string][]){
+    const sorted=data.sort();
 
 
 fs.writeFileSync(
