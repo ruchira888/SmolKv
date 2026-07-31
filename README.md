@@ -18,7 +18,7 @@ SmolKV implements the core pieces of a durable storage engine: a write ahead log
 Why this exists
 This project is about understanding why databases are built the way they are why writes go to a log before anything else, why deletes can't just erase data, why on-disk files are immutable, and why "merging old files" (compaction) is unavoidable in this design.
 
-## 🏗️ Architecture
+## ꕤ  Architecture
 
 ![alt text](image.png)
 
@@ -56,7 +56,7 @@ smolkv/
 └── README.md
 ```
 
-## Features
+##ꕤ  Features
 
 ### 1. Write-Ahead Log (WAL)
 
@@ -112,12 +112,12 @@ SmolKV includes a built-in CLI visualizer that displays the current state of the
 <p align="center">
   <img src="./image-1.png" alt="LSM Tree Visualization" width="700">
 </p>
-ꕤ Getting Started
+##ꕤ Getting Started
 
 Install dependencies
 
 npm install
-ꕤ Run the HTTP API
+##ꕤ Run the HTTP API
 
 Start the Express server
 
