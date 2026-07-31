@@ -1,239 +1,296 @@
-﻿<h1 align="center">SmolKV</h1>
+﻿# SmolKV
+
+> A lightweight **Log-Structured Merge (LSM) Tree** based key-value database built from scratch in **TypeScript**.
+
+---
+
+## ⋆˚꩜｡ About
+
+SmolKV is a lightweight database project built to understand how modern key-value databases work internally.
+
+It implements the core components of an LSM Tree storage engine including **Write-Ahead Logging (WAL)**, **MemTables**, **immutable SSTables**, **Manifest-based recovery**, **tombstone deletes**, **compaction**, **transactions**, an **HTTP API**, an **interactive CLI**, and **LSM Tree visualization**.
+
+### Why this project?
+
+SmolKV focuses on understanding **why databases are designed this way**—why writes go to a log first, why deletes use tombstones, why SSTables are immutable, and why compaction is essential in LSM-based storage engines.
+
+---
+
+## ⋆˚꩜｡ Architecture
 
 <p align="center">
-  <b>A small but functional Log-Structured Merge (LSM) Tree based key-value database built in TypeScript.</b>
- 
+<img src="./image.png" width="900">
 </p>
 
 ---
 
-## About
+## ⋆˚꩜｡ How SmolKV Works
 
-SmolKV is a lightweight database project that implements the core ideas behind an **LSM Tree storage engine**. The goal of this project is to understand how modern key-value databases manage writes, persistence, recovery, and disk storage by building every component from scratch in TypeScript.
+SmolKV follows a simplified **Log-Structured Merge (LSM) Tree** architecture.
+
+- Every write (`put`/`delete`) is first appended to the **Write-Ahead Log (WAL)** for durability.
+- The latest data is then stored in the in-memory **MemTable**.
+- The **Index** keeps track of where every key currently lives (MemTable or SSTable).
+- When the MemTable reaches its size limit, it is flushed into a new immutable **SSTable**.
+- The **Manifest** records every SSTable along with the latest processed WAL offset.
+- Reads always check the **MemTable** first, then use the **Index** to locate the correct SSTable.
+- Deletes are represented using **tombstones** instead of immediately removing data.
+- During startup, the engine reloads SSTables and replays unflushed WAL entries to recover recent writes.
+- Periodically, **Compaction** merges SSTables, removes duplicate values and tombstones, and improves read performance.
 
 ---
 
-SmolKV implements the core pieces of a durable storage engine: a write ahead log for crash recovery, an in memory table for fast writes, immutable on disk SSTables, a manifest to track state across restarts, tombstone based deletes, compaction, and basic transactions plus an HTTP API and CLI on top.
-
-Why this exists
-This project is about understanding why databases are built the way they are why writes go to a log before anything else, why deletes can't just erase data, why on-disk files are immutable, and why "merging old files" (compaction) is unavoidable in this design.
-
-## 🏗️ Architecture
-
-![alt text](image.png)
-
-## Project Structure
+## ⋆˚꩜｡ Project Structure
 
 ```text
 smolkv/
 ├── src/
-│   ├── engine.ts                 # Core database engine
-│   ├── index.ts                  # In-memory key → SSTable index
-│   ├── transaction.ts            # Buffered transactions (commit/abort)
-│   ├── constants.ts              # Shared constants
+│   ├── engine.ts
+│   ├── index.ts
+│   ├── transaction.ts
+│   ├── constants.ts
 │   │
 │   ├── api/
-│   │   └── server.ts             # Express HTTP API
+│   │   └── server.ts
 │   │
 │   ├── cli/
-│   │   └── cli.ts                # Command-line interface
+│   │   └── cli.ts
 │   │
 │   ├── memtable/
-│   │   └── memtable.ts           # In-memory write buffer
+│   │   └── memtable.ts
 │   │
 │   └── storage/
-│       ├── wal.ts                # Write-Ahead Log (WAL)
-│       ├── sstable.ts            # Immutable SSTables
-│       ├── manifest.ts           # Manifest + WAL checkpoint
-│       └── compactor.ts          # SSTable compaction
+│       ├── wal.ts
+│       ├── sstable.ts
+│       ├── manifest.ts
+│       └── compactor.ts
 │
-├── tests/                        # Vitest test suite
-├── examples/                     # Example scripts
-├── data/                         # SSTables + manifest.json (gitignored)
-├── database.log                  # WAL file (gitignored)
+├── tests/
+├── data/
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
-## Features
+---
+
+## ⋆˚꩜｡ Features
 
 ### 1. Write-Ahead Log (WAL)
 
-Before any write reaches memory, it is first appended to a Write-Ahead Log (WAL). If the application crashes before the MemTable is flushed, the WAL is replayed during recovery to restore the lost operations.
+Before any write reaches memory, it is first appended to the WAL. If the application crashes before the MemTable is flushed, the WAL is replayed during recovery.
 
 ### 2. MemTable
 
-The MemTable is an in-memory sorted key-value store that serves as the first destination for all writes. Reads always check the MemTable first because it contains the latest data. Once it reaches the configured size limit, it is flushed to disk as an SSTable.
+An in-memory write buffer that stores the latest key-value pairs. Reads always check the MemTable first.
 
 ### 3. SSTables
 
-SSTables (Sorted String Tables) are immutable files stored on disk. When the MemTable becomes full, all of its entries are written to a new SSTable. Since SSTables never change after creation, writes remain fast and sequential.
+Immutable sorted files written when the MemTable reaches its configured size.
 
 ### 4. Manifest
 
-The Manifest keeps track of every SSTable file created by the database along with the last processed WAL offset. During startup it allows the engine to discover existing SSTables and continue recovery safely.
+Tracks every SSTable and the latest processed WAL offset for recovery.
 
-### 5. Index
+### 5. In-Memory Index
 
-An in-memory index maps each key to its latest location (either the MemTable or an SSTable). Instead of scanning every SSTable during reads, the engine performs a quick lookup through the index.
+Maps every key to its latest location (MemTable or SSTable), avoiding full SSTable scans.
 
 ### 6. Crash Recovery
 
-After a restart, the engine reloads all SSTables using the Manifest and replays only the WAL entries that were not flushed previously. This guarantees that committed writes are recovered after a crash
+Rebuilds the Index from SSTables and replays only WAL entries written after the previous checkpoint.
 
 ### 7. Tombstones
 
-Deleting a key does not immediately remove it from disk. Instead, a special tombstone marker is written. During reads, tombstones hide deleted values, and later compaction permanently removes obsolete data.
+Deletes are represented using tombstone markers and removed permanently during compaction.
 
 ### 8. Compaction
 
-Compaction merges multiple SSTables into a single newer SSTable while removing duplicate versions and deleted keys. This reduces disk usage and improves read performance.
+Merges multiple SSTables, removes duplicate values and tombstones, and improves read performance.
 
 ### 9. Transactions
 
-SmolKV supports lightweight buffered transactions. Operations are collected inside a transaction and are applied only when commit() is called. Calling abort() discards all pending operations without modifying the database.
+Buffers operations until `commit()` is called. Calling `abort()` discards pending writes.
 
-Note: Transaction support is currently available through the engine API only.
+> Transaction support is currently available only through the Engine API.
 
 ### 10. REST API
 
-SmolKV exposes an Express-based HTTP API that allows external applications to perform PUT, GET, DELETE and compaction operations without directly interacting with the storage engine.
+Expose CRUD operations over HTTP using Express.
 
-### 11. CLI
+### 11. Interactive CLI
 
-The CLI provides an interactive way to use SmolKV directly from the terminal. Users can insert, retrieve, delete, compact the database and visualize the internal LSM Tree state.
-...
+Insert, retrieve, delete, compact and inspect the database directly from the terminal.
 
-## 12. LSM Tree Visualization
+### 12. LSM Tree Visualization
 
-SmolKV includes a built-in CLI visualizer that displays the current state of the LSM Tree after each operation. It shows the contents of the MemTable, the in-memory Index, and all SSTables currently stored on disk, making it easier to understand how data flows through the storage engine.
+Displays the current MemTable, Index and SSTables after every CLI operation.
 
 <p align="center">
-  <img src="./image-1.png" alt="LSM Tree Visualization" width="700">
+<img src="./image-1.png" width="700">
 </p>
-ꕤ Getting Started
 
-Install dependencies
+---
 
+## ⋆˚꩜｡ Getting Started
+
+### Installation
+
+```bash
 npm install
-ꕤ Run the HTTP API
+```
 
-Start the Express server
+---
 
+### Run the HTTP API
+
+```bash
 npm run server
+```
 
-The server starts on:
+Server:
 
+```text
 http://localhost:3000
-Example Requests
-Insert a Key
+```
+
+### Example Requests
+
+Insert
+
+```bash
 curl -X POST http://localhost:3000/put \
 -H "Content-Type: application/json" \
 -d '{"key":"name","value":"YOUR_NAME"}'
-Get a Key
+```
+
+Get
+
+```bash
 curl http://localhost:3000/get/name
-Delete a Key
+```
+
+Delete
+
+```bash
 curl -X DELETE http://localhost:3000/delete/name
-Compact SSTables
+```
+
+Compact
+
+```bash
 curl -X POST http://localhost:3000/compact
-📡 API Reference
-Method Endpoint Request Response
-POST /put { "key": "...", "value": "..." } { "status": "ok" }
-GET /get/:key — { "value": "..." }
-DELETE /delete/:key — { "status": "ok" }
-POST /compact — { "status": "compaction completed" }
-ꕤ Using the CLI
+```
 
-Start the interactive CLI
+---
 
+### API Reference
+
+| Method | Endpoint       | Description            |
+| ------ | -------------- | ---------------------- |
+| POST   | `/put`         | Insert or update a key |
+| GET    | `/get/:key`    | Retrieve a value       |
+| DELETE | `/delete/:key` | Delete a key           |
+| POST   | `/compact`     | Run compaction         |
+
+---
+
+## ⋆˚꩜｡ Using the CLI
+
+Start the CLI
+
+```bash
 npm run cli
+```
 
-Available commands
+### Commands
 
-put <key> <value> Insert or update a key
-get <key> Retrieve a value
-delete <key> Delete a key
-compact Merge SSTables
-show Visualize the current LSM Tree
-help List all commands
-exit Exit the CLI
-Example Session
+| Command             | Description            |
+| ------------------- | ---------------------- |
+| `put <key> <value>` | Insert or update       |
+| `get <key>`         | Retrieve a value       |
+| `delete <key>`      | Delete a key           |
+| `compact`           | Merge SSTables         |
+| `show`              | Visualize the LSM Tree |
+| `exit`              | Exit the CLI           |
 
+---
+
+### Example Session
+
+```text
 > put name YOUR_NAME
-> OK
-
-> put city YOUR_CITY
-> OK
+OK
 
 > get name
-> YOUR_NAME
-
-> delete city
-> Deleted
-
-> compact
-> Compaction completed.
+YOUR_NAME
 
 > show
-
 ┌─ LSM Tree State ─────────────────────
 │ MemTable (RAM):
-│ name → YOUR_NAME
+│   name → Ruchira
 │
 │ Index:
-│ name → ./data/001.sst
+│   name → memtable
 │
 │ SSTables:
-│ 001.sst
+│   (none yet)
 └──────────────────────────────────────
+```
 
-> exit
+---
 
-Note: Each CLI execution automatically calls recover() during startup to restore the latest database state from the WAL and SSTables.
+## ⋆˚꩜｡ Using SmolKV as a Library
 
-ꕤ Using SmolKV as a Library
+```ts
 import { KVEngine } from "./src/engine.js";
 
 const db = new KVEngine();
 
-// Restore database state after startup
 db.recover();
 
-// Write
 db.put("name", "YOUR_NAME");
 
-// Read
 console.log(db.get("name"));
 
-// Delete
 db.delete("name");
+```
 
-console.log(db.get("name")); // undefined
-ꕤ Transactions
+---
 
-SmolKV supports lightweight buffered transactions through the Engine API.
+## ⋆˚꩜｡ Transactions
 
-const db = new KVEngine();
-
+```ts
 const tx = db.beginTransaction();
 
 tx.put("a", "1");
 tx.put("b", "2");
 
-// Nothing has been written yet.
-
 tx.commit();
+```
 
-// Values are now persisted.
+Abort
 
-Discard a transaction:
-
+```ts
 const tx = db.beginTransaction();
 
 tx.put("c", "99");
 
-// Discard pending writes
 tx.abort();
+```
 
-Note: Transactions are currently supported only through the Engine API. CLI and HTTP transaction support is planned for a future release.
+> CLI and HTTP transaction support are planned for a future release.
+
+---
+
+## ⋆˚꩜｡ Running Tests
+
+```bash
+npx vitest run
+```
+
+---
+
+## ⋆˚꩜｡ License
+
+ISC
