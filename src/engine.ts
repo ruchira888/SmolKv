@@ -6,6 +6,7 @@ import { SSTable } from "../storage/sstable.js";
 import { Manifest } from "../storage/manifest.js";
 import { TOMBSTONE } from "./constants.js";
 import { Compact } from "../storage/compactor.js";
+import { Transaction } from "./transaction.js";
 export class KVEngine{
     private memtable: MemTable;//each Kveng instance gets its own store property, initialize to empty Map
   private wal:WAL;
@@ -100,6 +101,9 @@ export class KVEngine{
     this.memtable.put(key,TOMBSTONE);
     this.index.set(key,"memtable");
 }
+ beginTransaction(): Transaction {
+    return new Transaction(this);
+}
   recover(){
     const manifestData = this.manifest.load();
     const walOffset = manifestData.walOffset || 0;
@@ -117,4 +121,5 @@ export class KVEngine{
         }
     }
   }
+ 
 }
