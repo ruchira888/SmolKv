@@ -1,7 +1,7 @@
 import fs from "fs";
 
 export class WAL{
-  private file="database.log"
+  private file="./data/database.log";
 
   append(
   operation:string,
@@ -21,7 +21,9 @@ JSON.stringify(data)+"\n"
 
 
 read(){
-
+  if (!fs.existsSync(this.file)) {
+        return [];
+    }
 const logs =
 fs.readFileSync(
 this.file,

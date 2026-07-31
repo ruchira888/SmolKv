@@ -1,13 +1,26 @@
 import { KVEngine } from "../engine.js";
 import { TOMBSTONE } from "../constants.js";
 import { MemTable } from "../../memtable/memtable.js";
-
+import fs from "fs"
 const db = new KVEngine();
 db.recover();
 
 const args = process.argv.slice(2);//Array of cli args & skips da 1st 2 items in process.argv because they r added automatically by Node.js
 const command = args[0];
 
+if (command === "reset") {
+    if (fs.existsSync("./data")) {
+        fs.rmSync("./data", {
+            recursive: true,
+            force: true
+        });
+    }
+
+    fs.mkdirSync("./data");
+
+    console.log(" Database reset successfully!");
+    process.exit(0);
+}
 if (command === "put") {
     const key = args[1];
     const value = args[2];
@@ -44,6 +57,18 @@ else if (command === "delete") {
 
     db.delete(key);
     console.log("OK");
+}
+else if (command === "reset") {
+    if (fs.existsSync("./data")) {
+        fs.rmSync("./data", {
+            recursive: true,
+            force: true
+        });
+    }
+
+    fs.mkdirSync("./data");
+
+    console.log("✅ Database reset successfully.");
 }
 else {
     console.log("Usage: cli <put|get|delete> <key> [value]");
